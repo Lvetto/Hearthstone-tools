@@ -46,7 +46,7 @@ class Parser:
         # Define a rule for key-value pairs
         key = Word(alphanums + '_')
         value = Regex(r'.*?(?=\s+\w+=|\]|$)') + Optional(Suppress("]"))| Word(alphanums + '_') + Optional(Suppress("]"))
-        self.key_value = (Optional(Suppress("Entity=[")) + Optional(Suppress("[")) + Group(key('key') + Suppress('=') + value('value')) + Optional(Suppress("]"))).set_results_name("key_vals")
+        self.key_value = (Optional(Suppress("Entity=[")) + Optional(Suppress("[")) + Group(key('key') + Suppress('=') + value('value')) + Optional(Suppress("]")))#.set_results_name("key_vals")
 
         # Lines always start with the same pattern
         self.line_start = self.initial_char + self.timestamp + self.packet_type + self.separator
@@ -56,46 +56,44 @@ class Parser:
         self.tag_change_packet = self.line_start + command_name + Group(OneOrMore(self.key_value))("tags")
 
     def create_game_rule(self):
-        # Rules describing the lines that make up the packet
         command_start = self.line_start + Literal("CREATE_GAME")('command_name')
-        game_entity = Suppress(self.line_start) + Literal("GameEntity") + self.key_value("GameEntity-tags")
+        game_entity = Suppress(self.line_start) + Literal("GameEntity") + self.key_value("GameEntity_il_tags")
         tag_line = Suppress(self.line_start) + OneOrMore(self.key_value)
-        player = Suppress(self.line_start) + Literal("Player") + Group(OneOrMore(self.key_value))("Player-tags")
+        player = Suppress(self.line_start) + Literal("Player") + Group(OneOrMore(self.key_value))
 
-        # Rule for the actual command
-        self.create_game_packet = command_start + game_entity + Group(OneOrMore(tag_line)) + player + Group(OneOrMore(tag_line)) + player + Group(OneOrMore(tag_line))
+        self.create_game_packet = command_start + game_entity + Group(OneOrMore(tag_line))("game_tags") + player("player_1") + Group(OneOrMore(tag_line))("player_1_tags") + player("player_2") + Group(OneOrMore(tag_line))("player_2_tags")
 
     def full_entity_rule(self):
-        command_start = self.line_start + Literal("FULL_ENTITY")('command_name') + self.separator + Word(alphas) + Group(OneOrMore(self.key_value))
+        command_start = self.line_start + Literal("FULL_ENTITY")('command_name') + self.separator + Word(alphas) + Group(OneOrMore(self.key_value))("il_tags")
         tag_line = Suppress(self.line_start) + OneOrMore(self.key_value)
 
-        self.full_entity_packet = command_start + Group(OneOrMore(tag_line))
+        self.full_entity_packet = command_start + Group(OneOrMore(tag_line))("tags")
 
     def hide_entity_rule(self):
         command_name = Keyword("HIDE_ENTITY")('command_name')
-        self.hide_entity_packet = self.line_start + command_name + self.separator + Group(OneOrMore(self.key_value))
+        self.hide_entity_packet = self.line_start + command_name + self.separator + Group(OneOrMore(self.key_value))("tags")
     
     def show_entity_rule(self):
         command_name = Keyword("SHOW_ENTITY")('command_name')
-        first_line = self.line_start + command_name + self.separator + Word(alphas) + Group(OneOrMore(self.key_value))
+        first_line = self.line_start + command_name + self.separator + Word(alphas)("type") + Group(OneOrMore(self.key_value))("il_tags")
         tag_line = Suppress(self.line_start) + OneOrMore(self.key_value)
 
-        self.show_entity_packet = first_line + Group(OneOrMore(tag_line))
+        self.show_entity_packet = first_line + Group(OneOrMore(tag_line))("tags")
 
     def change_entity_rule(self):
         command_name = Keyword("CHANGE_ENTITY")('command_name')
-        self.change_entity_packet = self.line_start + command_name + self.separator + Word(alphas) + Group(OneOrMore(self.key_value))
+        self.change_entity_packet = self.line_start + command_name + self.separator + Word(alphas)("type") + Group(OneOrMore(self.key_value))("tags")
 
     def block_start_rule(self):
         # This packet is not necessary and is usually only used for grouping other packets to create in-game animations
-        # It can be useful to detect some actions related to this animations
+        # It can be useful to detect some actions related to these animations
         command_name = Keyword("BLOCK_START")('command_name')
-        self.block_start_packet = self.line_start + command_name + Group(OneOrMore(self.key_value))
+        self.block_start_packet = self.line_start + command_name + Group(OneOrMore(self.key_value))("tags")
 
     def parse_str(self, string):
         return self.expr.search_string(string)
 
-
+# Currently only used for testing
 if __name__ == "__main__":
     filename = "test-data/test_files/" + "2024-10-26-15-10" + ".log"
     filename = "test-data/test_files/" + "test" + ".log"
@@ -103,22 +101,64 @@ if __name__ == "__main__":
     p = Parser()
 
     with open(f"{filename}") as file:
-        t = file.read()
+        data = file.read()
+    
+    packet_data = p.parse_str(data)
 
-    t0 = time()
-    res = p.parse_str(t)
-    t1 = time()
+    # Just for testing. Should be moved elsewhere
 
-    print(f"Parsing time: {t1-t0:.2f}s")
+    from packets import *
 
-    for i in res:
+    packets = []
+
+    for packet in packet_data:
         try:
-            print(i["command_name"])
-        except:
-            print(i.as_list())
+            timestamp = packet["timestamp"]
+            ptype = packet["packet_type"]
+            command = packet["command_name"]
+            
+            if (command == "CREATE_GAME"):
+                ge_il_tags = packet["GameEntity_il_tags"]
+                game_tags = packet["game_tags"]
+                p1 = packet["player_1"]
+                p1_tags = packet["player_1_tags"]
+                p2 = packet["player_2"]
+                p2_tags = packet["player_2_tags"]
 
-    t = res.as_list()
-    #t = [(i[1], i[3]) for i in t]
+                packets.append(CreateGame(timestamp, ptype, command, ge_il_tags, game_tags, p1, p1_tags, p2, p2_tags))
 
-    with open("tout.json", "w") as file:
-        dump(t, file, indent=4)
+            elif (command == "FULL_ENTITY"):
+                il_tags = packet["il_tags"]
+                tags = packet["tags"]
+
+                packets.append(FullEntity(timestamp, ptype, command, il_tags, tags))
+            
+            elif (command == "SHOW_ENTITY"):
+                il_tags = packet["il_tags"]
+                tags = packet["tags"]
+
+                packets.append(ShowEntity(timestamp, ptype, command, il_tags, tags))
+            
+            elif (command == "TAG_CHANGE"):
+                tags = packet["tags"]
+
+                packets.append(TagChange(timestamp, ptype, command, tags))
+
+            elif (command == "HIDE_ENTITY"):
+                tags = packet["tags"]
+
+                packets.append(HideEntity(timestamp, ptype, command, tags))
+            
+            elif (command == "CHANGE_ENTITY"):
+                tags = packet["tags"]
+
+                packets.append(ChangeEntity(timestamp, ptype, command, tags))
+
+
+        except KeyError:
+            pass
+            #print(f"Error on packet: {packet.as_list()}")
+    
+    quit()
+    [print(i) for i in packets]
+
