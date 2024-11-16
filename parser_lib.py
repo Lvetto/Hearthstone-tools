@@ -16,12 +16,13 @@ class Parser:
         self.show_entity_rule()
         self.change_entity_rule()
         self.block_start_rule()
+        self.block_end_rule()
 
         # Used as a catch-all for un-handled packets. Has to be last in the expression declaration
         generic_packet = self.line_start + SkipTo("\n")
 
         # The rules need to be combined to form an expression that can then be compared to the content of the text
-        self.expr = self.create_game_packet | self.full_entity_packet | self.tag_change_packet | self.hide_entity_packet | self.show_entity_packet | self.change_entity_packet| self.block_start_packet | generic_packet
+        self.expr = self.create_game_packet | self.full_entity_packet | self.tag_change_packet | self.hide_entity_packet | self.show_entity_packet | self.change_entity_packet| self.block_start_packet | self.block_end_packet | generic_packet
 
     # This method defines some basic patterns used to define more specific rules for the various commands. It is intended to be only called by the __init__
     # Currently this defines rules for: initial_char, timestamp, packet_type, separator, key_value pair, line_start
@@ -93,7 +94,7 @@ class Parser:
     def block_end_rule(self):
         # Also not necessary and only useful for animations
         command_name = Keyword("BLOCK_END")('command_name')
-        self.block_start_packet = self.line_start + command_name
+        self.block_end_packet = self.line_start + command_name
 
     def parse_str(self, string):
         return self.expr.search_string(string)
