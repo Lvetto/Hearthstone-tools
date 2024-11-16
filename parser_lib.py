@@ -89,6 +89,11 @@ class Parser:
         # It can be useful to detect some actions related to these animations
         command_name = Keyword("BLOCK_START")('command_name')
         self.block_start_packet = self.line_start + command_name + Group(OneOrMore(self.key_value))("tags")
+    
+    def block_end_rule(self):
+        # Also not necessary and only useful for animations
+        command_name = Keyword("BLOCK_END")('command_name')
+        self.block_start_packet = self.line_start + command_name
 
     def parse_str(self, string):
         return self.expr.search_string(string)
@@ -104,6 +109,7 @@ if __name__ == "__main__":
         data = file.read()
     
     packet_data = p.parse_str(data)
+    print(packet_data)
 
     # Just for testing. Should be moved elsewhere
 
@@ -156,8 +162,7 @@ if __name__ == "__main__":
 
 
         except KeyError:
-            pass
-            #print(f"Error on packet: {packet.as_list()}")
+            print(f"Error on packet: {" ".join(packet.as_list())}")
     
     quit()
     [print(i) for i in packets]
