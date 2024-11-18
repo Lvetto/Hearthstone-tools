@@ -75,7 +75,9 @@ class TagChange(Packet):
         for tag, value in pair_tags(tags.as_list()[-2:]):
             self.tags[tag] = value
 
-# Show entity packets can be handled the same as tag changes
+# THESE TWO ARE LIKELY BROKEN DUE TO HOW THE TAGS ARE SPLIT UP IN ID_TAGS AND TAGS TO BE CHANGED!
+
+# Hide entity packets can be handled the same as tag changes
 class HideEntity(TagChange):
     def __init__(self, timestamp, packet_type, command, tags):
         super().__init__(timestamp, packet_type, command, tags)
@@ -86,3 +88,9 @@ class HideEntity(TagChange):
 class ChangeEntity(TagChange):
     def __init__(self, timestamp, packet_type, command, tags):
         super().__init__(timestamp, packet_type, command, tags)
+
+class PlayerId(Packet):
+    def __init__(self, timestamp, packet_type, command, id, name):
+        super().__init__(timestamp, packet_type, command)
+        self.id = id
+        self.name = name

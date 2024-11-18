@@ -17,12 +17,13 @@ class Parser:
         self.change_entity_rule()
         self.block_start_rule()
         self.block_end_rule()
+        self.playerId_rule()
 
         # Used as a catch-all for un-handled packets. Has to be last in the expression declaration
         generic_packet = self.line_start + SkipTo("\n")
 
         # The rules need to be combined to form an expression that can then be compared to the content of the text
-        self.expr = self.create_game_packet | self.full_entity_packet | self.tag_change_packet | self.hide_entity_packet | self.show_entity_packet | self.change_entity_packet| self.block_start_packet | self.block_end_packet | generic_packet
+        self.expr = self.create_game_packet | self.full_entity_packet | self.tag_change_packet | self.hide_entity_packet | self.show_entity_packet | self.change_entity_packet| self.block_start_packet | self.block_end_packet | self.playerId_packet | generic_packet
 
     # This method defines some basic patterns used to define more specific rules for the various commands. It is intended to be only called by the __init__
     # Currently this defines rules for: initial_char, timestamp, packet_type, separator, key_value pair, line_start
@@ -95,22 +96,31 @@ class Parser:
         # Also not necessary and only useful for animations
         command_name = Keyword("BLOCK_END")('command_name')
         self.block_end_packet = self.line_start + command_name
+    
+    def playerId_rule(self):
+        command_name = Keyword("PlayerID")("command_name")
+        self.playerId_packet = self.line_start + command_name + Suppress("=") + Word(alphanums)("id") + Suppress(",") + Suppress("PlayerName=") + Word(alphanums + "#")("name")
 
     def parse_str(self, string):
         return self.expr.search_string(string)
 
 # Currently only used for testing
 if __name__ == "__main__":
-    filename = "test-data/test_files/" + "2024-10-26-15-10" + ".log"
-    filename = "test-data/test_files/" + "test" + ".log"
+    filename = "test-data/test_files/" + "11-13_17-06-copy" + ".log"
+    #filename = "test-data/test_files/" + "test" + ".log"
 
     p = Parser()
 
     with open(f"{filename}") as file:
         data = file.read()
     
+    t0 = time()
+
     packet_data = p.parse_str(data)
-    print(packet_data)
+
+    t1 = time()
+
+    print(f"Parsing time: {t1 -t0:.2f}s")
 
     # Just for testing. Should be moved elsewhere
 
@@ -139,7 +149,7 @@ if __name__ == "__main__":
                 tags = packet["tags"]
 
                 packets.append(FullEntity(timestamp, ptype, command, il_tags, tags))
-            
+
             elif (command == "SHOW_ENTITY"):
                 il_tags = packet["il_tags"]
                 tags = packet["tags"]
@@ -160,11 +170,25 @@ if __name__ == "__main__":
                 tags = packet["tags"]
 
                 packets.append(ChangeEntity(timestamp, ptype, command, tags))
+            
+            elif (command == "PlayerID"):
+                id = packet["id"]
+                name = packet["name"]
+
+                packets.append(PlayerId(timestamp, ptype, command, id, name))
 
 
         except KeyError:
             print(f"Error on packet: {" ".join(packet.as_list())}")
     
-    quit()
-    [print(i) for i in packets]
+    from entities import *
+
+    print(f"\n\n{"-" * 100} \n\n")
+
+    t0 = time()
+
+    t = get_entity_list(packets)
+
+    t1 = time()
+    print(f"Elaboration time: {t1-t0:.2f}s")
 
