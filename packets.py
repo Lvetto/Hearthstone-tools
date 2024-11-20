@@ -94,3 +94,65 @@ class PlayerId(Packet):
         super().__init__(timestamp, packet_type, command)
         self.id = id
         self.name = name
+
+# Convert parsed packet data to a list of packet objects
+def GetPacketList(packet_data, dbg=False):
+    packets = []
+
+    for packet in packet_data:
+        try:
+            timestamp = packet["timestamp"]
+            ptype = packet["packet_type"]
+            command = packet["command_name"]
+            
+            if (command == "CREATE_GAME"):
+                ge_il_tags = packet["GameEntity_il_tags"]
+                game_tags = packet["game_tags"]
+                p1 = packet["player_1"]
+                p1_tags = packet["player_1_tags"]
+                p2 = packet["player_2"]
+                p2_tags = packet["player_2_tags"]
+
+                packets.append(CreateGame(timestamp, ptype, command, ge_il_tags, game_tags, p1, p1_tags, p2, p2_tags))
+
+            elif (command == "FULL_ENTITY"):
+                il_tags = packet["il_tags"]
+                tags = packet["tags"]
+
+                packets.append(FullEntity(timestamp, ptype, command, il_tags, tags))
+
+            elif (command == "SHOW_ENTITY"):
+                il_tags = packet["il_tags"]
+                tags = packet["tags"]
+
+                packets.append(ShowEntity(timestamp, ptype, command, il_tags, tags))
+            
+            elif (command == "TAG_CHANGE"):
+                tags = packet["tags"]
+
+                packets.append(TagChange(timestamp, ptype, command, tags))
+
+            elif (command == "HIDE_ENTITY"):
+                tags = packet["tags"]
+
+                packets.append(HideEntity(timestamp, ptype, command, tags))
+            
+            elif (command == "CHANGE_ENTITY"):
+                tags = packet["tags"]
+
+                packets.append(ChangeEntity(timestamp, ptype, command, tags))
+            
+            elif (command == "PlayerID"):
+                id = packet["id"]
+                name = packet["name"]
+
+                packets.append(PlayerId(timestamp, ptype, command, id, name))
+
+        # This catches packets not implemented in the parser
+        except KeyError:
+            if (dbg):
+                print(f"Error on packet: {" ".join(packet.as_list())}")
+            else:
+                pass
+
+    return packets

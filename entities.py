@@ -4,13 +4,13 @@ class Entity:
         for tag, value in tags:
             self.tags[tag] = value
 
+        # Some tags shoud be available for all entities, but currently this is not necessarely true (ex: entities created by vhange tag when they aren't found)
         """self.id = self.tags["ENTITY_ID"]
         self.card_type = self.tags["CARDTYPE"]
         self.controller = self.tags["CONTROLLER"]
         self.zone = self.tags["ZONE"]
         self.creator = self.tags["CREATOR"]"""
 
-    
     def change_tag(self, tag, value):
         self.tags[tag] = value
 
@@ -48,10 +48,11 @@ def CreateGame(packet):
 
     return (game, player1, player2)
 
-def get_entity_list(packets, entities=[]):
+def GetEntityList(packets, entities=[], dbg=False):
     # for whatever reason, the game creates player entities and gives them ids, then searches for them by player-name which is given elsewhere
     ids = []
     names = []
+
     entities = []
 
     for packet in packets:
@@ -78,7 +79,8 @@ def get_entity_list(packets, entities=[]):
             entities.append(player1)
             entities.append(player2)
             entities.append(game)
-        
+
+        # Handle the command used to create and update entities by giving all their tags
         elif (command == "FULL_ENTITY" or command == "SHOW_ENTITY"):
             id_tags = packet.id_tags
             tags = packet.tags
@@ -106,10 +108,14 @@ def get_entity_list(packets, entities=[]):
             
             if (should_append):
                 entities.append(entity)
-        
+
+        # Handle the command used to update a single tag on an entity
         elif (command == "TAG_CHANGE" or command == "HIDE_ENTITY" or command == "CHANGE_ENTITY"):
             id_tags = packet.id_tags
             tags = packet.tags
+
+            # They also, in their infinite wisdom, decided to define a bunch of tags and then search for several of them under "Entity"
+            # This block is necessary, because the program otherwise would have to skip a lot of tag changes
             t = []
             if ("id" in id_tags.keys()):
                 t = FindByTags(["ENTITY_ID"], [id_tags["id"]], entities)
@@ -122,20 +128,31 @@ def get_entity_list(packets, entities=[]):
             if (len(t) == 0) and ("Entity" in id_tags.keys()):
                 t = FindByTags(["entityName"], [id_tags["Entity"]], entities)
 
-            
+            # Sometimes entities are unable to be located. Either because of a parsing error or because the entity doesn't exist
+            # This is unlikely to be much of a problem and can be safwly ignored in most cases
             if (len(t) == 0):
-                print(f"Error, entity not found from tags {" ".join(id_tags.keys())} with values {" ".join(id_tags.values())}")
-            
+
+                if (dbg):
+                    print(f"Error, entity not found from tags {" ".join(id_tags.keys())} with values {" ".join(id_tags.values())}")
+
+                # The game occasionally tries to change tags on some entities representing the enemy players and a few other less important things by looking for them using the Entity=[...] tag
+                # As far as i can tell, these entities are never created or at least never given the names used to look for them
+                # The following code is a hack to try and handle this by creating them the first time they are mentioned
+                if ("Entity" in id_tags.keys()) and (len(id_tags.keys()) == 1):
+                    entity = Entity(zip(list(id_tags.keys()), list(id_tags.values())))
+                    should_append = True
+
             else:
                 entity = entities[t[0][0]]
+                should_append = False
 
-                for tag, value in zip(tags.keys(), tags.values()):
-                    entity[tag] = value
-
+            for tag, value in zip(tags.keys(), tags.values()):
+                entity[tag] = value
             
-    
+            if (should_append):
+                entities.append(entity)
 
-    print(len(entities))
+    return entities
 
 
 

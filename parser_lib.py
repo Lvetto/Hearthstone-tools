@@ -3,7 +3,7 @@ from pyparsing import (
     OneOrMore, alphanums, quotedString, White, ZeroOrMore, restOfLine, Regex, Literal, printables, SkipTo
 )
 from time import time
-from json import dump
+from pickle import dump, load
 
 class Parser:
     def __init__(self):
@@ -106,89 +106,42 @@ class Parser:
 
 # Currently only used for testing
 if __name__ == "__main__":
-    filename = "test-data/test_files/" + "11-13_17-06-copy" + ".log"
-    #filename = "test-data/test_files/" + "test" + ".log"
+    from packets import GetPacketList
+    from entities import GetEntityList, FindByTags
 
-    p = Parser()
+    filename = "test-data/test_files/" + "2024-10-26-15-10" + ".log"
+    #filename = "test-data/test_files/" + "test" + ".log"
 
     with open(f"{filename}") as file:
         data = file.read()
+
+    p = Parser()
+
+    try:
+        with open(filename.split(".")[0] + ".pickle", "br") as file:
+            packet_data = load(file)
+    except FileNotFoundError:
+        packet_data = p.parse_str(data)
     
-    t0 = time()
+    with open(filename.split(".")[0] + ".pickle", "bw") as file:
+        dump(packet_data, file)
 
-    packet_data = p.parse_str(data)
+    print("Data parsed")
 
-    t1 = time()
+    packets = GetPacketList(packet_data)
 
-    print(f"Parsing time: {t1 -t0:.2f}s")
+    print("Packets created")
 
-    # Just for testing. Should be moved elsewhere
+    entities = GetEntityList(packets)
 
-    from packets import *
+    print("Entities created")
 
-    packets = []
+    # EXAMPLE: extracting minions controlled by one player and displaying thei type
 
-    for packet in packet_data:
-        try:
-            timestamp = packet["timestamp"]
-            ptype = packet["packet_type"]
-            command = packet["command_name"]
-            
-            if (command == "CREATE_GAME"):
-                ge_il_tags = packet["GameEntity_il_tags"]
-                game_tags = packet["game_tags"]
-                p1 = packet["player_1"]
-                p1_tags = packet["player_1_tags"]
-                p2 = packet["player_2"]
-                p2_tags = packet["player_2_tags"]
+    players = FindByTags(["CARDTYPE"], ["PLAYER"], entities)
+    p_id = players[0][1]["PlayerID"]
 
-                packets.append(CreateGame(timestamp, ptype, command, ge_il_tags, game_tags, p1, p1_tags, p2, p2_tags))
+    minion_in_play = FindByTags(["ZONE", "CARDTYPE", "CONTROLLER"], ["PLAY", "MINION", p_id], entities)
 
-            elif (command == "FULL_ENTITY"):
-                il_tags = packet["il_tags"]
-                tags = packet["tags"]
-
-                packets.append(FullEntity(timestamp, ptype, command, il_tags, tags))
-
-            elif (command == "SHOW_ENTITY"):
-                il_tags = packet["il_tags"]
-                tags = packet["tags"]
-
-                packets.append(ShowEntity(timestamp, ptype, command, il_tags, tags))
-            
-            elif (command == "TAG_CHANGE"):
-                tags = packet["tags"]
-
-                packets.append(TagChange(timestamp, ptype, command, tags))
-
-            elif (command == "HIDE_ENTITY"):
-                tags = packet["tags"]
-
-                packets.append(HideEntity(timestamp, ptype, command, tags))
-            
-            elif (command == "CHANGE_ENTITY"):
-                tags = packet["tags"]
-
-                packets.append(ChangeEntity(timestamp, ptype, command, tags))
-            
-            elif (command == "PlayerID"):
-                id = packet["id"]
-                name = packet["name"]
-
-                packets.append(PlayerId(timestamp, ptype, command, id, name))
-
-
-        except KeyError:
-            print(f"Error on packet: {" ".join(packet.as_list())}")
-    
-    from entities import *
-
-    print(f"\n\n{"-" * 100} \n\n")
-
-    t0 = time()
-
-    t = get_entity_list(packets)
-
-    t1 = time()
-    print(f"Elaboration time: {t1-t0:.2f}s")
-
+    for n, minion in minion_in_play:
+        print(minion["CARDRACE"])
