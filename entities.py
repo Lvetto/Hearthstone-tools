@@ -56,6 +56,10 @@ def GetEntityList(packets, entities=[], dbg=False):
     entities = []
 
     for packet in packets:
+
+        if (dbg):
+            print(packet)
+
         command = packet.command
 
         # Handle the command that gives the player names and their ids

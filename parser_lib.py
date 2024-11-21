@@ -4,6 +4,7 @@ from pyparsing import (
 )
 from time import time
 from pickle import dump, load
+import re
 
 class Parser:
     def __init__(self):
@@ -102,6 +103,9 @@ class Parser:
         self.playerId_packet = self.line_start + command_name + Suppress("=") + Word(alphanums)("id") + Suppress(",") + Suppress("PlayerName=") + Word(alphanums + "#")("name")
 
     def parse_str(self, string):
+        # Sometimes in the logs there are tag names without an assigned value. This creates issues with the parsing rules and it is easier to remove them before processing the contents
+        string = re.sub(r'\w+=\s', '', string)
+
         return self.expr.search_string(string)
 
 # Currently only used for testing
@@ -132,11 +136,11 @@ if __name__ == "__main__":
 
     print("Packets created")
 
-    entities = GetEntityList(packets)
+    entities = GetEntityList(packets, dbg=True)
 
     print("Entities created")
 
-    # EXAMPLE: extracting minions controlled by one player and displaying thei type
+    # EXAMPLE: extracting minions controlled by one player and displaying their type
 
     players = FindByTags(["CARDTYPE"], ["PLAYER"], entities)
     p_id = players[0][1]["PlayerID"]
@@ -144,4 +148,5 @@ if __name__ == "__main__":
     minion_in_play = FindByTags(["ZONE", "CARDTYPE", "CONTROLLER"], ["PLAY", "MINION", p_id], entities)
 
     for n, minion in minion_in_play:
-        print(minion["CARDRACE"])
+        #print(minion["CARDRACE"])
+        pass

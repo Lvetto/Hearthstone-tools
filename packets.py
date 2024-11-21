@@ -3,6 +3,10 @@ class Packet:
         self.timestamp = timestamp
         self.packet_type = packet_type
         self.command = command
+    
+    # Useful for debugging and in the analyzer
+    def __repr__(self):
+        return f"{self.command}"
 
 def pair_tags(tags):
     pairs = list(zip(tags[::2], tags[1::2]))
@@ -39,6 +43,13 @@ class CreateGame(Packet):
         for tag, value in pair_tags(player_2_tags.as_list()):
             self.p2_tags[tag] = value
 
+    def __repr__(self):
+        game_tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.game_tags.keys(), self.game_tags.values())]
+        p1_tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.p1_tags.keys(), self.p1_tags.values())]
+        p2_tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.p2_tags.keys(), self.p2_tags.values())]
+
+        return f"{self.command}:\n\tGame: \n{"".join(game_tags)}\tPlayer 1: \n{"".join(p1_tags)}\tPlayer 2: \n{"".join(p2_tags)}"
+
 class FullEntity(Packet):
     def __init__(self, timestamp, packet_type, command, il_tags, tags):
         super().__init__(timestamp, packet_type, command)
@@ -53,6 +64,12 @@ class FullEntity(Packet):
         self.tags = {}
         for tag, value in pair_tags(tags.as_list()):
             self.tags[tag] = value
+    
+    def __repr__(self):
+        id_tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.id_tags.keys(), self.id_tags.values())]
+        tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.tags.keys(), self.tags.values())]
+
+        return f"{self.command}:\n\tInline tags: \n{"".join(id_tags)}\tTags: \n{"".join(tags)}"
 
 # Show entity packets can be handled the same as full entities
 class ShowEntity(FullEntity):
@@ -69,11 +86,17 @@ class TagChange(Packet):
         self.id_tags = {}
         for tag, value in tags.as_list()[:-2]:
             self.id_tags[tag] = value
-        
+
         # these are the tags to change
         self.tags = {}
         for tag, value in pair_tags(tags.as_list()[-2:]):
             self.tags[tag] = value
+    
+    def __repr__(self):
+        id_tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.id_tags.keys(), self.id_tags.values())]
+        tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.tags.keys(), self.tags.values())]
+
+        return f"{self.command}:\n\tID tags: \n{"".join(id_tags)}\tUpdated tags: \n{"".join(tags)}"
 
 # THESE TWO ARE LIKELY BROKEN DUE TO HOW THE TAGS ARE SPLIT UP IN ID_TAGS AND TAGS TO BE CHANGED!
 
@@ -94,6 +117,9 @@ class PlayerId(Packet):
         super().__init__(timestamp, packet_type, command)
         self.id = id
         self.name = name
+    
+    def __repr__(self):
+        return f"{self.command}\t{self.id}\t{self.name}\n"
 
 # Convert parsed packet data to a list of packet objects
 def GetPacketList(packet_data, dbg=False):
