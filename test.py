@@ -12,12 +12,12 @@ def time_function(func):
         t0 = time()
         res = func(*args, **kwargs)
         t1 = time()
-        print(f"Time take by '{func.__name__}': {t1 - t0:.3f} s")
+        print(f"Time taken by '{func.__name__}': {t1 - t0:.3f} s")
         return res
     return wrapper
 
 filename = "test-data/test_files/" + "2024-10-26-15-10" + ".log"
-#filename = "test-data/test_files/" + "test" + ".log"
+filename = "test-data/test_files/" + "Power_2" + ".log"
 
 with open(f"{filename}") as file:
     data = file.read()
@@ -28,7 +28,7 @@ try:
     with open(filename.split(".")[0] + ".pickle", "br") as file:
         packet_data = load(file)
 except FileNotFoundError:
-    packet_data = p.parse_str(data)
+    packet_data = time_function(p.parse_str)(data)
 
     with open(filename.split(".")[0] + ".pickle", "bw") as file:
         dump(packet_data, file)
@@ -52,4 +52,7 @@ minion_data = [GetCardData(id, cards) for id in minion_ids]
 
 print(f"Minion types: {", ".join([minion["CARDRACE"] for n, minion in minions_in_play])}")
 print(f"Minion names: {", ".join([card["name"] for card in minion_data])}")
+
+t = FindByTags(["id"], ["5160"], entities)
+print(t)
 

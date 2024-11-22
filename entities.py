@@ -22,6 +22,11 @@ class Entity:
 
     def __setitem__(self, name, value):
         self.tags[name] = value
+    
+    def __repr__(self):
+        tags = [f"\t\t{tag} = {val}\n" for tag,val in zip(self.tags.keys(), self.tags.values())]
+
+        return f"Tags: \n{"".join(tags)}"
 
 
 def FindByTags(tags, values, entities):

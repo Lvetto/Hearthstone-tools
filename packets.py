@@ -98,8 +98,6 @@ class TagChange(Packet):
 
         return f"{self.command}:\n\tID tags: \n{"".join(id_tags)}\tUpdated tags: \n{"".join(tags)}"
 
-# THESE TWO ARE LIKELY BROKEN DUE TO HOW THE TAGS ARE SPLIT UP IN ID_TAGS AND TAGS TO BE CHANGED!
-
 # Hide entity packets can be handled the same as tag changes
 class HideEntity(TagChange):
     def __init__(self, timestamp, packet_type, command, tags):

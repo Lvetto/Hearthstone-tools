@@ -99,6 +99,7 @@ class Parser:
 
     def parse_str(self, string):
         # Sometimes in the logs there are tag names without an assigned value. This creates issues with the parsing rules and it is easier to remove them before processing the contents
-        string = re.sub(r'\w+=\s', '', string)
+        string = re.sub(r'\w+=[ \t]', '', string)
+        string = re.sub(r'\w+=\n', '\n', string)
 
         return self.expr.search_string(string)
