@@ -1,9 +1,4 @@
-from pyparsing import (
-    Word, alphas, nums, Combine, Suppress, Optional, Group, Keyword,
-    OneOrMore, alphanums, quotedString, White, ZeroOrMore, restOfLine, Regex, Literal, printables, SkipTo
-)
-from time import time
-from pickle import dump, load
+from pyparsing import Word, alphas, nums, Combine, Suppress, Optional, Group, Keyword, OneOrMore, alphanums, White, ZeroOrMore, Regex, Literal, SkipTo
 import re
 
 class Parser:
