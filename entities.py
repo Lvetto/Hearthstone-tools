@@ -4,7 +4,7 @@ class Entity:
         for tag, value in tags:
             self.tags[tag] = value
 
-        # Some tags shoud be available for all entities, but currently this is not necessarely true (ex: entities created by vhange tag when they aren't found)
+        # Some tags shoud be available for all entities, but currently this is not necessarely true (ex: entities created by change tag when they aren't found)
         """self.id = self.tags["ENTITY_ID"]
         self.card_type = self.tags["CARDTYPE"]
         self.controller = self.tags["CONTROLLER"]
