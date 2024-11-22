@@ -28,8 +28,8 @@ try:
 except FileNotFoundError:
     packet_data = p.parse_str(data)
 
-with open(filename.split(".")[0] + ".pickle", "bw") as file:
-    dump(packet_data, file)
+    with open(filename.split(".")[0] + ".pickle", "bw") as file:
+        dump(packet_data, file)
 
 packets = time_function(GetPacketList)(packet_data)
 
