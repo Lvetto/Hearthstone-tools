@@ -7,20 +7,11 @@ response = requests.get(url)
 
 if response.status_code == 200:
     t = json.loads(response.text)
-    out = []
-    names = []
-    for i in t:
-        try:
-            if (i["isBattlegroundsPoolMinion"]):
-                out.append(i)
-                names.append(i["name"])
-        except:
-            if (i["name"] in names) and ("BG" in i["id"]):
-                out.append(i)
+    bg_cards = []
+    for card in t:
+        if card["set"] == "BATTLEGROUNDS":
+            bg_cards.append(card)
+    with open("json-data/bg-cards.json", "w") as file:
+        file.write(json.dumps(bg_cards, indent=4))
 
-    with open('minions.json', 'w', encoding='utf-8') as file:
-        file.write(json.dumps(out, indent=4))
-    
-    with open('all-cards.json', 'w', encoding='utf-8') as file:
-        file.write(json.dumps(t, indent=4))
 

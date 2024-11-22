@@ -3,6 +3,8 @@ from entities import GetEntityList, FindByTags
 from parser_lib import Parser
 from pickle import dump, load
 from time import time
+import json
+from utils import GetCardData
 
 # Decorator used to time the execution of functions
 def time_function(func):
@@ -35,11 +37,19 @@ packets = time_function(GetPacketList)(packet_data)
 
 entities = time_function(GetEntityList)(packets, dbg=False)
 
-# EXAMPLE: extracting minions controlled by one player and displaying their type
+# EXAMPLE: extracting minions controlled by one player and displaying their type and name
 
-players = time_function(FindByTags)(["CARDTYPE"], ["PLAYER"], entities)
+players = FindByTags(["CARDTYPE"], ["PLAYER"], entities)
 p_id = players[0][1]["PlayerID"]
 
-minions_in_play = time_function(FindByTags)(["ZONE", "CARDTYPE", "CONTROLLER"], ["PLAY", "MINION", p_id], entities)
+minions_in_play = FindByTags(["ZONE", "CARDTYPE", "CONTROLLER"], ["PLAY", "MINION", p_id], entities)
+minion_ids = [minion["cardId"] for n, minion in minions_in_play]
+
+with open("json-data/bg-cards.json") as file:
+    cards = json.load(file)
+
+minion_data = [GetCardData(id, cards) for id in minion_ids]
 
 print(f"Minion types: {", ".join([minion["CARDRACE"] for n, minion in minions_in_play])}")
+print(f"Minion names: {", ".join([card["name"] for card in minion_data])}")
+
