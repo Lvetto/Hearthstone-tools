@@ -44,7 +44,7 @@ class Parser:
         # Define a rule for key-value pairs
         key = Word(alphanums + '_')
         value = Regex(r'.*?(?=\s+\w+=|\]|$)') + Optional(Suppress("]"))| Word(alphanums + '_') + Optional(Suppress("]"))
-        self.key_value = (Optional(Suppress("Entity=[")) + Optional(Suppress("[")) + Group(key('key') + Suppress('=') + value('value')) + Optional(Suppress("]")))#.set_results_name("key_vals")
+        self.key_value = (Optional(Suppress("[")) + Group(key('key') + Suppress('=') + value('value')) + Optional(Suppress("]")))#.set_results_name("key_vals")
 
         # Lines always start with the same pattern
         self.line_start = self.initial_char + self.timestamp + self.packet_type + self.separator
@@ -100,6 +100,10 @@ class Parser:
     def parse_str(self, string):
         # Sometimes in the logs there are tag names without an assigned value. This creates issues with the parsing rules and it is easier to remove them before processing the contents
         string = re.sub(r'\w+=[ \t]', '', string)
-        string = re.sub(r'\w+=\n', '\n', string)
+        string = re.sub(r'\w+=\n', '\n', string)    # An empty tag at end of line must be handled differently. We need to put the \n back or the parser mixes up lines
+
+        # These acause problems by messing up the way the parser recognises key-value pairs
+        string = re.sub(r'Entity=\[', '', string)   # This is basically an empty tag. Could be handled with a recursive structure in the parser, but doesn't seem to be worth it
+        string = re.sub(r'\[cardType=INVALID\]', '', string)    # The square brackets are only used like this for this specific expression, messing up some rules. It also doesn't contain useful info
 
         return self.expr.search_string(string)
